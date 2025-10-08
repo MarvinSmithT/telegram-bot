@@ -98,6 +98,27 @@ flask_app = Flask(__name__)
 @flask_app.get("/")
 def home():
     return "OK", 200
+# --- Telegram Webhook ---
+@flask_app.post(f"/tg/{os.environ.get('TG_SECRET','')}")
+def tg_webhook():
+    from flask import request
+    import asyncio
+    from telegram import Update
+
+    if not TG_SECRET:
+        return ("no TG_SECRET", 500)
+    if app is None:
+        return ("app not ready", 503)
+
+    data = request.get_json(silent=True) or {}
+    try:
+        upd = Update.de_json(data, app.bot)
+        fut = asyncio.run_coroutine_threadsafe(app.process_update(upd), app.loop)
+        fut.result(timeout=10)
+        return ("ok", 200)
+    except Exception as e:
+        return (f"err: {e}", 500)
+    
 # --- TradingView Webhook ---
 @flask_app.post("/tv")
 def tv_webhook():
@@ -151,6 +172,9 @@ def run_web():
     flask_app.run(host="0.0.0.0", port=port)
 
 if __name__ == "__main__":
+    import asyncio
+
+    # 1) Crear la app de Telegram
     app = Application.builder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("ping", ping))
@@ -158,22 +182,32 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("postphoto", postphoto))
     app.add_handler(CommandHandler("signal", signal))
 
-    # Lanza Flask DESPUÉS de crear la app de Telegram
+    # 2) Levantar Flask (HTTP) en segundo plano
     Thread(target=run_web, daemon=True).start()
+    print("HTTP vivo (Flask) + inicializando Telegram…")
 
-    print("Bot corriendo en Render (polling)…")
+    async def _start_webhook():
+        # Inicializar y arrancar PTB sin polling
+        await app.initialize()
+        await app.start()
 
-    # Reintentos si hay conflicto de getUpdates
-    from telegram.error import Conflict
-    import time
-    while True:
+        # Asegurar que NO haya polling activo ni webhooks viejos
         try:
-            app.run_polling(drop_pending_updates=True)
-        except Conflict:
-            print("⚠️ Conflict de getUpdates; reintentando en 5s")
-            time.sleep(5)
-        except Exception as e:
-            print(f"⚠️ Error en run_polling: {e}; reintentando en 5s")
-            time.sleep(5)
+            await app.bot.delete_webhook(drop_pending_updates=True)
+        except Exception:
+            pass
 
+        # Registrar webhook de Telegram hacia tu Flask
+        if PUBLIC_URL and TG_SECRET:
+            url = f"{PUBLIC_URL}/tg/{TG_SECRET}"
+            await app.bot.set_webhook(url=url)
+            print(f"Webhook de Telegram activo → {url}")
+        else:
+            print("Faltan PUBLIC_URL o TG_SECRET en Environment.")
+
+        # Mantener viva la tarea
+        await asyncio.Event().wait()
+
+    # 3) Correr la tarea async en el hilo principal
+    asyncio.run(_start_webhook())
 

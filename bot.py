@@ -111,11 +111,15 @@ def tg_webhook():
 
     data = request.get_json(silent=True) or {}
     try:
+        # log simple para ver que llega algo
+        print("TG webhook →", data.get("update_id"), data.get("message", {}) or data.get("channel_post", {}))
+
         upd = Update.de_json(data, app.bot)
-        # PTB v21: NO usar app.loop ni run_coroutine_threadsafe
-        app.update_queue.put_nowait(upd)
+        # Alimentar el update al loop interno de PTB (v21)
+        app.create_task(app.process_update(upd))
         return ("ok", 200)
     except Exception as e:
+        print("TG webhook error:", e)
         return (f"err: {e}", 500)
 
 # --- TradingView Webhook ---

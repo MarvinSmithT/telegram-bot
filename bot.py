@@ -95,6 +95,47 @@ flask_app = Flask(__name__)
 @flask_app.get("/")
 def home():
     return "OK", 200
+# --- TradingView Webhook ---
+@flask_app.post("/tv")
+def tv_webhook():
+    # imports locales para no mover los de arriba
+    from flask import request
+    import asyncio, json
+
+    tv_secret = os.environ.get("TV_SECRET", "")
+    # 1) Validar secreto
+    secret = request.args.get("secret")
+    if not secret:
+        data0 = request.get_json(silent=True) or {}
+        secret = data0.get("secret") or request.headers.get("X-TRADINGVIEW-SECRET")
+    if tv_secret and secret != tv_secret:
+        return ("unauthorized", 401)
+
+    # 2) Leer mensaje y enviarlo al canal
+    data = request.get_json(silent=True) or {}
+    text = data.get("text") or data.get("message") or json.dumps(data, ensure_ascii=False)
+
+    fut = asyncio.run_coroutine_threadsafe(
+        app.bot.send_message(chat_id=CHANNEL_ID, text=f"📢 TradingView: {text}"),
+        app.loop
+    )
+    fut.result(timeout=10)
+    return ("ok", 200)
+
+# GET de prueba rápida desde el navegador (opcional)
+@flask_app.get("/tv")
+def tv_test():
+    from flask import request
+    import asyncio
+    tv_secret = os.environ.get("TV_SECRET", "")
+    if tv_secret and request.args.get("secret") != tv_secret:
+        return ("unauthorized", 401)
+    text = request.args.get("text", "test")
+    asyncio.run_coroutine_threadsafe(
+        app.bot.send_message(chat_id=CHANNEL_ID, text=f"🔧 TV TEST: {text}"),
+        app.loop
+    )
+    return ("ok", 200)
 
 def run_web():
     port = int(os.environ.get("PORT", "10000"))

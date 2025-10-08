@@ -113,9 +113,9 @@ def tg_webhook():
     data = request.get_json(silent=True) or {}
     try:
         upd = Update.de_json(data, app.bot)
-        fut = asyncio.run_coroutine_threadsafe(app.process_update(upd), app.loop)
-        fut.result(timeout=10)
-        return ("ok", 200)
+app.create_task(app.process_update(upd))
+return ("ok", 200)
+
     except Exception as e:
         return (f"err: {e}", 500)
     

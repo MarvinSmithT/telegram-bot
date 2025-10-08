@@ -12,6 +12,10 @@ if not TOKEN:
 if not CHANNEL_ID:
     raise RuntimeError("Falta CHANNEL_ID")
 CHANNEL_ID = int(CHANNEL_ID)
+OWNER_ID = int(os.environ.get("OWNER_ID", "0"))
+
+def is_owner(update: Update) -> bool:
+    return update.effective_user and update.effective_user.id == OWNER_ID
 
 # --- Comandos del bot ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -21,6 +25,10 @@ async def ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("pong")
 
 async def post(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not is_owner(update):
+        await update.message.reply_text("⛔ No autorizado.")
+        return
+
     if not context.args:
         await update.message.reply_text("Uso: /post tu mensaje")
         return
@@ -28,6 +36,10 @@ async def post(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=CHANNEL_ID, text=msg)
     await update.message.reply_text("✅ Enviado al canal.")
 async def postphoto(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not is_owner(update):
+        await update.message.reply_text("⛔ No autorizado.")
+        return
+
     if not context.args:
         await update.message.reply_text("Uso: /postphoto URL_de_imagen [texto opcional]")
         return
@@ -47,6 +59,10 @@ async def signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     Ejemplo:
     /signal EURUSD|BUY|1.08420|1.08320|1.08620|M5
     """
+        if not is_owner(update):
+        await update.message.reply_text("⛔ No autorizado.")
+        return
+
     text = " ".join(context.args)
     parts = [p.strip() for p in text.split("|")]
     if len(parts) < 6:

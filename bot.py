@@ -113,7 +113,7 @@ def tg_webhook():
     try:
         upd = Update.de_json(data, app.bot)
         # PTB v21: NO usar app.loop ni run_coroutine_threadsafe
-        app.create_task(app.process_update(upd))
+        app.update_queue.put_nowait(upd)
         return ("ok", 200)
     except Exception as e:
         return (f"err: {e}", 500)

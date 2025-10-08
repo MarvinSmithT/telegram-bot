@@ -156,11 +156,8 @@ def tv_test():
     if app is None:
         return ("app not ready", 503)
     
-    asyncio.run_coroutine_threadsafe(
-        app.bot.send_message(chat_id=CHANNEL_ID, text=f"🔧 TV TEST: {text}"),
-        app.loop
-    )
-    return ("ok", 200)
+app.create_task(app.bot.send_message(chat_id=CHANNEL_ID, text=f"🔧 TV TEST: {text}"))
+return ("ok", 200)
 
 def run_web():
     port = int(os.environ.get("PORT", "10000"))

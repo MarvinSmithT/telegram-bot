@@ -98,47 +98,64 @@ flask_app = Flask(__name__)
 @flask_app.get("/")
 def home():
     return "OK", 200
-# --- Telegram Webhook ---
+# --- Telegram Webhook (robusto) ---
 @flask_app.post(f"/tg/{os.environ.get('TG_SECRET','')}")
 def tg_webhook():
     from flask import request
     from telegram import Update
-    import requests
+    import requests, json, traceback
 
     if not TG_SECRET:
         return ("no TG_SECRET", 500)
     if app is None:
         return ("app not ready", 503)
 
-    data = request.get_json(silent=True) or {}
+    # 1) Leer el body de forma segura
     try:
-        # Log mínimo para verificar que llega el update
+        raw = request.get_data(cache=False, as_text=True) or ""
+        data = json.loads(raw) if raw else (request.get_json(silent=True) or {})
+    except Exception:
+        traceback.print_exc()
+        return ("bad json", 200)
+
+    try:
+        # 2) Log mínimo para depurar qué llega
         msg = data.get("message") or data.get("channel_post") or {}
         text = (msg.get("text") or "").strip()
         chat_id = (msg.get("chat") or {}).get("id")
+        print("TG webhook payload:", {"update_id": data.get("update_id"), "text": text, "chat_id": chat_id})
 
-        # 🔧 Hotfix: responde directo a /ping y /start (verificación rápida)
-        if chat_id and text in ("/ping", "/ping@"+(app.bot.username or "")):
+        # 3) Respuestas inmediatas para verificar rápido
+        if chat_id and text.startswith("/ping"):
             requests.post(
                 f"https://api.telegram.org/bot{TOKEN}/sendMessage",
                 json={"chat_id": chat_id, "text": "pong"}
             )
             return ("ok", 200)
 
-        if chat_id and text in ("/start", "/start@"+(app.bot.username or "")):
+        if chat_id and text.startswith("/start"):
             requests.post(
                 f"https://api.telegram.org/bot{TOKEN}/sendMessage",
                 json={"chat_id": chat_id, "text": "✅ Bot activo, escribiste /start"}
             )
             return ("ok", 200)
 
-        # ✅ Encolar el resto para que PTB lo procese en su loop
+        # 4) Si no parece un update, no intentes procesarlo
+        if "update_id" not in data:
+            print("TG webhook: payload sin update_id (ignorado)")
+            return ("ok", 200)
+
+        # 5) Encolar el update para que PTB lo procese en su loop
         upd = Update.de_json(data, app.bot)
-        app.update_queue.put_nowait(upd)   # cola thread-safe de PTB
+        app.update_queue.put_nowait(upd)          # cola thread-safe de PTB
+        print("TG webhook: enqueued update", data.get("update_id"))
         return ("ok", 200)
+
     except Exception as e:
-        print("TG webhook error:", e)
-        return (f"err: {e}", 500)
+        # Nunca respondas 500 a Telegram: devuelve 200 y loguea
+        traceback.print_exc()
+        print("TG webhook error:", e, "payload:", data)
+        return ("ok", 200)
 
 # --- TradingView Webhook ---
 @flask_app.post("/tv")

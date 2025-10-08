@@ -116,7 +116,7 @@ def tg_webhook():
 
         upd = Update.de_json(data, app.bot)
         # Alimentar el update al loop interno de PTB (v21)
-        app.create_task(app.process_update(upd))
+        app.update_queue.put_nowait(upd)
         return ("ok", 200)
     except Exception as e:
         print("TG webhook error:", e)

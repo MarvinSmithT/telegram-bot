@@ -139,12 +139,12 @@ def tv_webhook():
     if app is None:
         return ("app not ready", 503)
 
-import requests
-requests.post(
-    f"https://api.telegram.org/bot{TOKEN}/sendMessage",
-    json={"chat_id": CHANNEL_ID, "text": f"📢 TradingView: {text}"}
-)
-return ("ok", 200)
+    import requests
+    requests.post(
+        f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+        json={"chat_id": CHANNEL_ID, "text": f"📢 TradingView: {text}"}
+    )
+    return ("ok", 200)
 
 # GET de prueba rápida desde el navegador (opcional)
 @flask_app.get("/tv")

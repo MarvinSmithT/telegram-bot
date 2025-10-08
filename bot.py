@@ -115,6 +115,8 @@ def tv_webhook():
     # 2) Leer mensaje y enviarlo al canal
     data = request.get_json(silent=True) or {}
     text = data.get("text") or data.get("message") or json.dumps(data, ensure_ascii=False)
+    if app is None:
+        return ("app not ready", 503)
 
     fut = asyncio.run_coroutine_threadsafe(
         app.bot.send_message(chat_id=CHANNEL_ID, text=f"📢 TradingView: {text}"),
@@ -132,6 +134,9 @@ def tv_test():
     if tv_secret and request.args.get("secret") != tv_secret:
         return ("unauthorized", 401)
     text = request.args.get("text", "test")
+    if app is None:
+        return ("app not ready", 503)
+    
     asyncio.run_coroutine_threadsafe(
         app.bot.send_message(chat_id=CHANNEL_ID, text=f"🔧 TV TEST: {text}"),
         app.loop
@@ -144,8 +149,6 @@ def run_web():
     flask_app.run(host="0.0.0.0", port=port)
 
 if __name__ == "__main__":
-    Thread(target=run_web, daemon=True).start()
-
     app = Application.builder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("ping", ping))
@@ -153,6 +156,10 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("postphoto", postphoto))
     app.add_handler(CommandHandler("signal", signal))
 
+    # Lanza Flask DESPUÉS de crear la app de Telegram
+    Thread(target=run_web, daemon=True).start()
+
     print("Bot corriendo en Render (polling)…")
     app.run_polling()
+
 

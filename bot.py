@@ -141,12 +141,8 @@ def tv_webhook():
     if app is None:
         return ("app not ready", 503)
 
-    fut = asyncio.run_coroutine_threadsafe(
-        app.bot.send_message(chat_id=CHANNEL_ID, text=f"📢 TradingView: {text}"),
-        app.loop
-    )
-    fut.result(timeout=10)
-    return ("ok", 200)
+app.create_task(app.bot.send_message(chat_id=CHANNEL_ID, text=f"📢 TradingView: {text}"))
+return ("ok", 200)
 
 # GET de prueba rápida desde el navegador (opcional)
 @flask_app.get("/tv")

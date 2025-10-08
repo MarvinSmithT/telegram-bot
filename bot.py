@@ -103,6 +103,7 @@ def home():
 def tg_webhook():
     from flask import request
     from telegram import Update
+    import requests
 
     if not TG_SECRET:
         return ("no TG_SECRET", 500)
@@ -111,12 +112,29 @@ def tg_webhook():
 
     data = request.get_json(silent=True) or {}
     try:
-        # log simple para ver que llega algo
-        print("TG webhook →", data.get("update_id"), data.get("message", {}) or data.get("channel_post", {}))
+        # Log mínimo para verificar que llega el update
+        msg = data.get("message") or data.get("channel_post") or {}
+        text = (msg.get("text") or "").strip()
+        chat_id = (msg.get("chat") or {}).get("id")
 
+        # 🔧 Hotfix: responde directo a /ping y /start (verificación rápida)
+        if chat_id and text in ("/ping", "/ping@"+(app.bot.username or "")):
+            requests.post(
+                f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+                json={"chat_id": chat_id, "text": "pong"}
+            )
+            return ("ok", 200)
+
+        if chat_id and text in ("/start", "/start@"+(app.bot.username or "")):
+            requests.post(
+                f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+                json={"chat_id": chat_id, "text": "✅ Bot activo, escribiste /start"}
+            )
+            return ("ok", 200)
+
+        # ✅ Encolar el resto para que PTB lo procese en su loop
         upd = Update.de_json(data, app.bot)
-        # Alimentar el update al loop interno de PTB (v21)
-        app.update_queue.put_nowait(upd)
+        app.update_queue.put_nowait(upd)   # cola thread-safe de PTB
         return ("ok", 200)
     except Exception as e:
         print("TG webhook error:", e)

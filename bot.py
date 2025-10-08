@@ -17,6 +17,8 @@ OWNER_ID = int(os.environ.get("OWNER_ID", "0"))
 def is_owner(update: Update) -> bool:
     return update.effective_user and update.effective_user.id == OWNER_ID
 app = None  # se asigna más abajo cuando se crea la app de Telegram
+PUBLIC_URL = os.environ.get("PUBLIC_URL", "")
+TG_SECRET = os.environ.get("TG_SECRET", "")
 
 # --- Comandos del bot ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):

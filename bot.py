@@ -25,7 +25,7 @@ async def ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("pong")
 
 async def post(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        if not is_owner(update):
+    if not is_owner(update):
         await update.message.reply_text("⛔ No autorizado.")
         return
 
@@ -36,7 +36,7 @@ async def post(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=CHANNEL_ID, text=msg)
     await update.message.reply_text("✅ Enviado al canal.")
 async def postphoto(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        if not is_owner(update):
+    if not is_owner(update):
         await update.message.reply_text("⛔ No autorizado.")
         return
 
@@ -59,7 +59,7 @@ async def signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     Ejemplo:
     /signal EURUSD|BUY|1.08420|1.08320|1.08620|M5
     """
-        if not is_owner(update):
+    if not is_owner(update):
         await update.message.reply_text("⛔ No autorizado.")
         return
 

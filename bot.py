@@ -27,6 +27,17 @@ async def post(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = " ".join(context.args)
     await context.bot.send_message(chat_id=CHANNEL_ID, text=msg)
     await update.message.reply_text("✅ Enviado al canal.")
+async def postphoto(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.args:
+        await update.message.reply_text("Uso: /postphoto URL_de_imagen [texto opcional]")
+        return
+    url = context.args[0]
+    caption = " ".join(context.args[1:]) if len(context.args) > 1 else None
+    try:
+        await context.bot.send_photo(chat_id=CHANNEL_ID, photo=url, caption=caption)
+        await update.message.reply_text("✅ Foto enviada al canal.")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error enviando foto: {e}")
 
 # --- Mini servidor web para Render ---
 flask_app = Flask(__name__)
@@ -47,6 +58,7 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("ping", ping))
     app.add_handler(CommandHandler("post", post))
+    app.add_handler(CommandHandler("postphoto", postphoto))
 
     print("Bot corriendo en Render (polling)…")
     app.run_polling()

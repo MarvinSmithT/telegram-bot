@@ -160,6 +160,18 @@ if __name__ == "__main__":
     Thread(target=run_web, daemon=True).start()
 
     print("Bot corriendo en Render (polling)…")
-    app.run_polling()
+
+    # Reintentos si hay conflicto de getUpdates
+    from telegram.error import Conflict
+    import time
+    while True:
+        try:
+            app.run_polling(drop_pending_updates=True)
+        except Conflict:
+            print("⚠️ Conflict de getUpdates; reintentando en 5s")
+            time.sleep(5)
+        except Exception as e:
+            print(f"⚠️ Error en run_polling: {e}; reintentando en 5s")
+            time.sleep(5)
 
 

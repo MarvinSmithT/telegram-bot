@@ -102,7 +102,6 @@ def home():
 @flask_app.post(f"/tg/{os.environ.get('TG_SECRET','')}")
 def tg_webhook():
     from flask import request
-    import asyncio
     from telegram import Update
 
     if not TG_SECRET:
@@ -113,11 +112,12 @@ def tg_webhook():
     data = request.get_json(silent=True) or {}
     try:
         upd = Update.de_json(data, app.bot)
-app.create_task(app.process_update(upd))
-return ("ok", 200)
+        # PTB v21: NO usar app.loop ni run_coroutine_threadsafe
+        app.create_task(app.process_update(upd))
+        return ("ok", 200)
     except Exception as e:
         return (f"err: {e}", 500)
-    
+
 # --- TradingView Webhook ---
 @flask_app.post("/tv")
 def tv_webhook():

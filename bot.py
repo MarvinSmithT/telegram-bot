@@ -115,7 +115,6 @@ def tg_webhook():
         upd = Update.de_json(data, app.bot)
 app.create_task(app.process_update(upd))
 return ("ok", 200)
-
     except Exception as e:
         return (f"err: {e}", 500)
     

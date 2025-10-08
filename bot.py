@@ -38,6 +38,40 @@ async def postphoto(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("✅ Foto enviada al canal.")
     except Exception as e:
         await update.message.reply_text(f"❌ Error enviando foto: {e}")
+from datetime import datetime  # si no está ya importado, añádelo arriba del archivo
+
+async def signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Uso:
+    /signal PAR|DIRECCION|ENTRADA|SL|TP|TF
+    Ejemplo:
+    /signal EURUSD|BUY|1.08420|1.08320|1.08620|M5
+    """
+    text = " ".join(context.args)
+    parts = [p.strip() for p in text.split("|")]
+    if len(parts) < 6:
+        await update.message.reply_text(
+            "Uso: /signal PAR|DIRECCION|ENTRADA|SL|TP|TF\n"
+            "Ej: /signal EURUSD|BUY|1.08420|1.08320|1.08620|M5"
+        )
+        return
+
+    par, side, entry, sl, tp, tf = parts[:6]
+    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+
+    body = (
+        "📈 <b>SEÑAL</b>\n"
+        f"• <b>Par:</b> {par}\n"
+        f"• <b>Dirección:</b> {side.upper()}\n"
+        f"• <b>Entrada:</b> {entry}\n"
+        f"• <b>SL:</b> {sl}\n"
+        f"• <b>TP:</b> {tp}\n"
+        f"• <b>TF:</b> {tf}\n"
+        f"• <b>Hora:</b> {now}"
+    )
+
+    await context.bot.send_message(chat_id=CHANNEL_ID, text=body, parse_mode="HTML")
+    await update.message.reply_text("✅ Señal enviada al canal.")
 
 # --- Mini servidor web para Render ---
 flask_app = Flask(__name__)
@@ -59,6 +93,7 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("ping", ping))
     app.add_handler(CommandHandler("post", post))
     app.add_handler(CommandHandler("postphoto", postphoto))
+    app.add_handler(CommandHandler("signal", signal))
 
     print("Bot corriendo en Render (polling)…")
     app.run_polling()
